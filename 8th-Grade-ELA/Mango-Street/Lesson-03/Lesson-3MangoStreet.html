@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The House on Mango Street - Lesson</title>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #d97757;
+            --secondary: #e8b4a0;
+            --accent: #5b8a72;
+            --dark: #2c3e50;
+            --light: #faf8f5;
+            --warm-bg: #fff5ed;
+            --text: #3a3a3a;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: linear-gradient(135deg, var(--warm-bg) 0%, #ffeee0 100%);
+            color: var(--text);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .container { display: flex; height: 100vh; }
+        .main-slide { flex: 1; display: flex; align-items: center; justify-content: center; padding: 4rem; position: relative; overflow: hidden; }
+        
+        .slide-content { max-width: 900px; width: 100%; opacity: 0; transform: translateY(20px); animation: slideIn 0.6s ease-out forwards; }
+        @keyframes slideIn { to { opacity: 1; transform: translateY(0); } }
+
+        .slide-title { font-family: 'Playfair Display', serif; font-size: 3.2rem; font-weight: 900; color: var(--primary); margin-bottom: 1rem; line-height: 1.1; }
+        .slide-subtitle { font-family: 'Crimson Pro', serif; font-size: 1.6rem; color: var(--accent); margin-bottom: 1.5rem; font-weight: 600; }
+        
+        .content-list { list-style: none; padding: 0; }
+        .content-list li { font-size: 1.3rem; padding: 0.6rem 0 0.6rem 2.5rem; position: relative; line-height: 1.5; }
+        .content-list li::before { content: '→'; position: absolute; left: 0; color: var(--primary); font-weight: bold; }
+
+        .bullet-point { font-size: 1.3rem; padding: 0.5rem 0 0.5rem 2rem; position: relative; line-height: 1.6; }
+        .bullet-point::before { content: '•'; position: absolute; left: 0; color: var(--primary); font-size: 1.8rem; }
+
+        .example-box { background: white; padding: 1.2rem 1.8rem; border-radius: 12px; margin: 0.8rem 0; border-left: 4px solid var(--primary); font-style: italic; font-size: 1.2rem; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .emphasis-text { font-size: 1.4rem; font-weight: 600; color: var(--accent); margin: 1rem 0; }
+
+        .notes-panel { width: 400px; background: var(--dark); color: white; padding: 2rem; overflow-y: auto; box-shadow: -4px 0 20px rgba(0,0,0,0.2); }
+        .notes-title { font-family: 'Playfair Display', serif; font-size: 1.5rem; margin-bottom: 1rem; color: var(--secondary); border-bottom: 2px solid var(--primary); padding-bottom: 0.5rem; }
+        .notes-content { font-size: 1rem; line-height: 1.7; color: #e0e0e0; }
+
+        .controls { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); display: flex; gap: 1rem; z-index: 1000; }
+        .btn { background: var(--primary); color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 50px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; }
+        .btn:hover { background: var(--accent); transform: translateY(-2px); }
+        .btn-timer { background: var(--accent); font-size: 0.9rem; margin-top: 10px; }
+
+        .timer-container { text-align: center; margin-top: 1.5rem; }
+        .timer-display { font-family: 'DM Sans', sans-serif; font-size: 3rem; color: var(--primary); font-weight: 700; margin-bottom: 10px; }
+        
+        .interactive-item { opacity: 0; transform: translateX(-20px); transition: all 0.4s ease; margin-bottom: 1rem; padding: 12px; background: rgba(255,255,255,0.6); border-radius: 8px; border-left: 5px solid var(--secondary); font-size: 1.2rem; }
+        .interactive-item.visible { opacity: 1; transform: translateX(0); }
+        
+        .emoji-button-container { display: flex; gap: 2rem; margin-top: 2rem; }
+        .emoji-btn { font-size: 3rem; background: white; border: 2px solid var(--primary); border-radius: 15px; cursor: pointer; padding: 1rem; transition: transform 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .emoji-btn:hover { transform: scale(1.1); background: var(--warm-bg); }
+
+        .slide-counter { position: fixed; top: 2rem; right: 2rem; background: white; padding: 0.8rem 1.5rem; border-radius: 50px; font-weight: 600; color: var(--primary); box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 1000; }
+        .toggle-notes { position: fixed; top: 2rem; left: 2rem; background: var(--accent); color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 50px; font-weight: 600; cursor: pointer; z-index: 1000; }
+        .notes-hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-slide">
+            <div class="slide-content" id="slideContent"></div>
+        </div>
+        <div class="notes-panel" id="notesPanel">
+            <div class="notes-title">📝 Speaker Notes</div>
+            <div class="notes-content" id="notesContent"></div>
+        </div>
+    </div>
+
+    <button class="toggle-notes" id="toggleNotes" onclick="toggleNotes()">Hide Notes</button>
+    <div class="slide-counter" id="slideCounter">1 / 28</div>
+    
+    <div class="controls">
+        <button class="btn" onclick="previousSlide()">← Previous</button>
+        <button class="btn" id="interactBtn" style="display:none;" onclick="handleInteraction()">Reveal Question</button>
+        <button class="btn" onclick="nextSlide()">Next →</button>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        let notesVisible = true;
+        let currentInteractiveIndex = 0;
+        let timerInterval;
+
+        const slides = [
+            { title: "The House on Mango Street", subtitle: "Lesson: Metaphor, Simile & Gender Themes", notes: "Welcome students." },
+            { 
+                title: "Today's Agenda", 
+                content: `<ul class="content-list"><li>Warm-Up: I-Ready/NewsELA (10 min)</li><li>Independent Reading Check-In (10 min)</li><li>Literary Devices: Metaphor & Simile (15 min)</li><li>Analysis: 'Boys and Girls' & Beyond (25 min)</li><li>Weekly Writing Assignment (10 min)</li><li>Guided Practice: Write Your Response (30 min)</li><li>Think-Pair-Share (10 min)</li><li>Exit Ticket (5 min)</li></ul>`,
+                notes: "Review the agenda."
+            },
+            {
+                title: "Warm-Up", subtitle: "(10 minutes)",
+                content: `<div class="example-box" style="font-style: normal;"><strong>Choose ONE:</strong><br><br>• Work on I-Ready / NewsELA<br>• Complete missing assignments</div>
+                <div class="timer-container">
+                    <div id="timer3" class="timer-display">00:00</div>
+                    <button class="btn btn-timer" onclick="startTimer(600, 'timer3')">10 Minutes</button>
+                    <button class="btn btn-timer" onclick="startTimer(300, 'timer3')">5 Minutes</button>
+                </div>`,
+                notes: "Students work on I-Ready or NewsELA."
+            },
+            { title: "Independent Reading:", subtitle: "Common Issues from Last Week", notes: "Check-in." },
+            { 
+                title: "What I Noticed...", 
+                content: `<div class="bullet-point">❌ Some responses didn't include a quote from the book</div><div class="bullet-point">❌ Some responses were less than 3 sentences</div><div class="bullet-point">❌ Some quotes weren't formatted correctly</div>`,
+                notes: "Provide feedback."
+            },
+            { 
+                title: "Independent Reading:", subtitle: "This Week's Assignment",
+                content: `<div class="bullet-point">✓ Choose a meaningful quote</div><div class="bullet-point">✓ Format: "Quote" (Author page #).</div><div class="bullet-point">✓ Respond in YOUR OWN WORDS (3+ sentences)</div>
+                <div class="timer-container">
+                    <div id="timer6" class="timer-display">00:00</div>
+                    <button class="btn btn-timer" onclick="startTimer(600, 'timer6')">Start 10 Min Timer</button>
+                </div>`,
+                notes: "Clarify expectations."
+            },
+            { title: "Literary Devices:", subtitle: "Metaphor & Simile", notes: "Transition." },
+            { 
+                title: "Simile", subtitle: "A comparison using 'like' or 'as'",
+                content: `<div class="example-box">"Her hair was as dark as night."</div><div class="example-box">"He ran like the wind."</div>`,
+                notes: "Simile examples."
+            },
+            { 
+                title: "Metaphor", subtitle: "A comparison that says one thing IS another",
+                content: `<div class="example-box">"Time is money."</div><div class="example-box">"Her words were daggers."</div><div class="example-box">"The snow is a white blanket."</div>`,
+                notes: "Metaphor examples."
+            },
+            { 
+                title: "Quick Check:", subtitle: "Simile or Metaphor?",
+                content: `<div style="font-size: 1.4rem; line-height: 2;">1. My brother is a couch potato.<br>2. She swims like a fish.<br>3. Life is a rollercoaster.<br>4. His smile was as bright as the sun.</div>`,
+                notes: "Check understanding."
+            },
+            { 
+                title: 'Vignette: "Boys and Girls"', 
+                subtitle: "Gender & Responsibility",
+                content: `
+                    <div id="bgq1" class="interactive-item">1. How does Esperanza describe the difference between boys and girls in her family?</div>
+                    <div id="bgq2" class="interactive-item">2. What does Esperanza say about Nenny? Why can't Nenny be her friend?</div>
+                    <div id="bgq3" class="interactive-item">3. What does Esperanza's desire for "a best friend all my own" tell us about her needs?</div>
+                    <div id="bgq4" class="interactive-item">4. Find a quote that shows Esperanza's feelings about being responsible for Nenny.</div>
+                `,
+                interactive: true,
+                notes: "Discuss the 'separate worlds' the boys and girls live in and Esperanza's sense of burden regarding her sister."
+            },
+            {
+                title: '"Boys and Girls"',
+                subtitle: "Metaphor Analysis",
+                content: `
+                    <p style="font-size: 1.3rem;">Click an emoji to reveal the analysis questions:</p>
+                    <div class="emoji-button-container">
+                        <button class="emoji-btn" onclick="revealEmoji('balloon')">🎈</button>
+                        <button class="emoji-btn" onclick="revealEmoji('world')">🌎</button>
+                    </div>
+                    <div id="balloon-meta" class="interactive-item" style="margin-top:2rem;">
+                        <strong>The Red Balloon:</strong> "Until then I am a red balloon, a balloon tied to an anchor." What does this metaphor reveal about her current situation and her desires for the future?
+                    </div>
+                    <div id="world-meta" class="interactive-item">
+                        <strong>Separate Worlds:</strong> Esperanza says the boys and girls live in "separate worlds." Analyze what this metaphor reveals about gender roles and family dynamics.
+                    </div>
+                `,
+                notes: "Interactive metaphor analysis. Use the 🎈 for the anchor metaphor and the 🌎 for gender roles."
+            },
+            { 
+                title: "Vignette 4: 'My Name'", 
+                subtitle: "Identity & Heritage",
+                content: `
+                    <div id="v4q1" class="interactive-item">1. What does Esperanza's name mean in English and in Spanish?</div>
+                    <div id="v4q2" class="interactive-item">2. Who was Esperanza named after? What does she know about this person?</div>
+                    <div id="v4q3" class="interactive-item">3. How does her great-grandmother's life story connect to the theme of women's limited choices? Use specific details.</div>
+                `,
+                interactive: true,
+                notes: "Focus on the literal meaning (Hope vs Sadness/Waiting)."
+            },
+            { 
+                title: "Vignette 4: 'My Name'", 
+                subtitle: "Identity & Hopes",
+                content: `
+                    <div id="v4q4" class="interactive-item">1. Esperanza wants to "baptize myself under a new name." What does this reveal about her hopes for the future?</div>
+                    <div id="v4q5" class="interactive-item">2. Find a quote that shows her conflicted feelings about her name. What does it reveal about her cultural identity?</div>
+                `,
+                interactive: true,
+                notes: "Discuss the desire for a name that 'the real me' inhabits."
+            },
+            { 
+                title: "Vignette 5: 'Cathy Queen of Cats'", 
+                subtitle: "Social Class & Prejudice",
+                content: `
+                    <div id="v5q1" class="interactive-item">1. Why is Cathy's family moving away from Mango Street? What reasons does she give for the neighborhood "getting bad"?</div>
+                    <div id="v5q2" class="interactive-item">2. How does Cathy use her supposed connection to the Queen of France to set herself apart? What does this reveal about her?</div>
+                `,
+                interactive: true,
+                notes: "Discuss coded references to race and class."
+            },
+            { 
+                title: "Vignette 5: 'Cathy Queen of Cats'", 
+                subtitle: "Friendship & Racism",
+                content: `
+                    <div id="v5q3" class="interactive-item">1. Analyze the contradiction: Cathy claims to be a friend but says it's only "till Tuesday." What does this show about her attitude?</div>
+                    <div id="v5q4" class="interactive-item">2. How does this vignette introduce themes of racism and classism?</div>
+                `,
+                interactive: true,
+                notes: "Focus on the conditional nature of Cathy's friendship."
+            },
+            { 
+                title: "Vignette 6: 'Our Good Day'", 
+                subtitle: "Belonging & Acceptance",
+                content: `
+                    <div id="v6q1" class="interactive-item">1. How do Esperanza, Lucy, and Rachel become friends? What do they buy for $5, and what do they do with it?</div>
+                    <div id="v6q2" class="interactive-item">2. Contrast this interaction with the one with Cathy. Why does this friendship feel more genuine?</div>
+                `,
+                interactive: true,
+                notes: "The bike as a symbol of shared freedom."
+            },
+            { 
+                title: "Vignette 6: 'Our Good Day'", 
+                subtitle: "Cisneros's Style",
+                content: `
+                    <div id="v6q3" class="interactive-item">1. "Our Good Day": Why does this simple day of bike riding represent something significant for Esperanza?</div>
+                    <div id="v6q4" class="interactive-item">2. How does Cisneros use short, simple sentences here? What effect does it create for the reader?</div>
+                `,
+                interactive: true,
+                notes: "Discuss the poetic, childlike voice."
+            },
+            { title: "New Assignment:", subtitle: "Weekly Writing", notes: "Instruction." },
+            { 
+                title: "Weekly Writing:", subtitle: "How It Works",
+                content: `<div class="bullet-point">📖 Pick ONE vignette & ONE prompt</div><div class="bullet-point">📝 One detailed paragraph = 4 points</div>`,
+                notes: "Rubric review."
+            },
+            { 
+                title: "Earning Full Points (4/4)", 
+                content: `<div class="content-list"><li>+1 CLAIM</li><li>+1 EVIDENCE</li><li>+1 COMMENTARY</li><li>+1 GRAMMAR</li></ul>`,
+                notes: "Point breakdown."
+            },
+            { 
+                title: "Today's Writing Options", 
+                content: `<div class="emphasis-text" style="color:var(--primary); font-size:1.4rem;">Please open F.3 House on Mango Street Writing Response #1</div>
+                <div class="example-box"><strong>Option 1:</strong> How does Cisneros show gender inequality in "Boys and Girls"?</div><div class="example-box"><strong>Option 2:</strong> What does Esperanza's 'red balloon' metaphor reveal about her feelings?</div>`,
+                notes: "Prompt selection."
+            },
+            {
+                title: "Independent Writing Time",
+                content: `
+                <div class="timer-container">
+                    <div id="timerW" class="timer-display">00:00</div>
+                    <div style="display:flex; gap:10px; justify-content:center;">
+                        <button class="btn btn-timer" onclick="startTimer(600, 'timerW')">10 Min</button>
+                        <button class="btn btn-timer" onclick="startTimer(900, 'timerW')">15 Min</button>
+                        <button class="btn btn-timer" onclick="startTimer(1200, 'timerW')">20 Min</button>
+                    </div>
+                </div>
+                <div style="margin-top:1.5rem;">
+                    <div class="bullet-point">Include a clear Claim</div>
+                    <div class="bullet-point">Provide Text Evidence (Quotes)</div>
+                    <div class="bullet-point">Add Commentary explaining the quote</div>
+                    <div class="bullet-point">Check Grammar and Punctuation</div>
+                </div>`,
+                notes: "Monitor the room."
+            },
+            { 
+                title: "Think-Pair-Share", 
+                subtitle: "Sharing our Writing",
+                content: `<div class="content-list"><li><strong>THINK:</strong> Underline your best sentence.</li><li><strong>PAIR:</strong> Read your sentence to a partner.</li><li><strong>SHARE:</strong> Volunteers share with the class.</li></ul>`,
+                notes: "Discussion."
+            },
+            { 
+                title: "Strong Response Checklist", 
+                content: `<div class="bullet-point">✓ Claim?</div><div class="bullet-point">✓ Quote?</div><div class="bullet-point">✓ Commentary?</div>`,
+                notes: "Final check."
+            },
+            { 
+                title: "Exit Ticket", 
+                content: `<p style="text-align:center;">What's the difference between a simile and a metaphor? <br><br>OR<br><br> Which of today's 3 vignettes was your favorite and why?</p>`,
+                notes: "Wrap up."
+            },
+            { 
+                title: "Homework", 
+                content: `<div class="bullet-point">📖 Complete Independent Reading Assignment</div>`,
+                notes: "Dismiss class."
+            }
+        ];
+
+        function renderSlide() {
+            const slide = slides[currentSlide];
+            const content = document.getElementById('slideContent');
+            const notes = document.getElementById('notesContent');
+            const counter = document.getElementById('slideCounter');
+            const interactBtn = document.getElementById('interactBtn');
+
+            content.style.opacity = '0';
+            currentInteractiveIndex = 0;
+            
+            setTimeout(() => {
+                let html = `<h1 class="slide-title">${slide.title || ''}</h1>`;
+                if (slide.subtitle) html += `<div class="slide-subtitle">${slide.subtitle}</div>`;
+                if (slide.content) html += slide.content;
+                content.innerHTML = html;
+                content.style.opacity = '1';
+                
+                if(slide.interactive) {
+                    interactBtn.style.display = 'block';
+                } else {
+                    interactBtn.style.display = 'none';
+                }
+            }, 300);
+
+            notes.innerHTML = `<p>${slide.notes}</p>`;
+            counter.textContent = `${currentSlide + 1} / ${slides.length}`;
+            clearInterval(timerInterval);
+        }
+
+        function handleInteraction() {
+            const items = document.querySelectorAll('.interactive-item');
+            if (currentInteractiveIndex < items.length) {
+                items[currentInteractiveIndex].classList.add('visible');
+                currentInteractiveIndex++;
+            }
+            if (currentInteractiveIndex === items.length) {
+                document.getElementById('interactBtn').style.display = 'none';
+            }
+        }
+
+        function revealEmoji(type) {
+            if (type === 'balloon') {
+                document.getElementById('balloon-meta').classList.add('visible');
+            } else if (type === 'world') {
+                document.getElementById('world-meta').classList.add('visible');
+            }
+        }
+
+        function startTimer(duration, displayId) {
+            let timer = duration, minutes, seconds;
+            const display = document.getElementById(displayId);
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                minutes = parseInt(timer / 60, 10);
+                seconds = parseInt(timer % 60, 10);
+                display.textContent = (minutes < 10 ? "0" + minutes : minutes) + ":" + (seconds < 10 ? "0" + seconds : seconds);
+                if (--timer < 0) {
+                    clearInterval(timerInterval);
+                    display.textContent = "00:00";
+                }
+            }, 1000);
+        }
+
+        function nextSlide() { if (currentSlide < slides.length - 1) { currentSlide++; renderSlide(); } }
+        function previousSlide() { if (currentSlide > 0) { currentSlide--; renderSlide(); } }
+        function toggleNotes() {
+            notesVisible = !notesVisible;
+            document.getElementById('notesPanel').classList.toggle('notes-hidden');
+            document.getElementById('toggleNotes').textContent = notesVisible ? 'Hide Notes' : 'Show Notes';
+        }
+
+        renderSlide();
+    </script>
+</body>
+</html>
