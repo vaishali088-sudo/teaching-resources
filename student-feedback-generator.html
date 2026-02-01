@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Feedback Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Crimson+Pro:wght@400;600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #d97757;
+            --secondary: #e8b4a0;
+            --accent: #5b8a72;
+            --dark: #2c3e50;
+            --light: #faf8f5;
+            --warm-bg: #fff5ed;
+            --text: #3a3a3a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: linear-gradient(135deg, var(--warm-bg) 0%, var(--light) 100%);
+            min-height: 100vh;
+            padding: 2rem;
+            color: var(--text);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-weight: 900;
+            font-size: 2.5rem;
+            color: var(--dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-family: 'Crimson Pro', serif;
+            font-size: 1.2rem;
+            color: var(--primary);
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 1.5rem;
+        }
+
+        .card h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.4rem;
+            color: var(--dark);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--dark);
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            font-family: 'DM Sans', sans-serif;
+            border: 2px solid var(--secondary);
+            border-radius: 8px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.2);
+        }
+
+        .qualities-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .quality-option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 0.8rem;
+            background: var(--light);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .quality-option:hover {
+            background: var(--warm-bg);
+        }
+
+        .quality-option.selected {
+            background: var(--warm-bg);
+            border-color: var(--primary);
+        }
+
+        .quality-option input[type="checkbox"] {
+            accent-color: var(--primary);
+            width: 18px;
+            height: 18px;
+        }
+
+        .quality-option span {
+            font-size: 0.95rem;
+        }
+
+        .custom-quality {
+            margin-top: 1rem;
+        }
+
+        .custom-quality input {
+            width: 100%;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.85rem 1.5rem;
+            font-size: 1rem;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #c4684a;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4a7a62;
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            background: white;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+
+        .btn-outline:hover {
+            background: var(--warm-bg);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .output-area {
+            display: none;
+        }
+
+        .output-area.visible {
+            display: block;
+        }
+
+        .feedback-note {
+            background: linear-gradient(135deg, var(--warm-bg) 0%, #fff 100%);
+            border: 2px solid var(--secondary);
+            border-radius: 12px;
+            padding: 1.5rem;
+            font-family: 'Crimson Pro', serif;
+            font-size: 1.2rem;
+            line-height: 1.7;
+            color: var(--dark);
+            min-height: 120px;
+            margin-bottom: 1rem;
+        }
+
+        .feedback-note .student-name {
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        .copy-success {
+            display: none;
+            color: var(--accent);
+            font-weight: 500;
+            margin-left: 1rem;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .copy-success.show {
+            display: inline;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            margin-bottom: 1.5rem;
+            transition: gap 0.2s;
+        }
+
+        .back-link:hover {
+            gap: 0.75rem;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .card {
+                padding: 1.25rem;
+            }
+
+            .qualities-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-link">← Back to Resources</a>
+
+        <header>
+            <h1>Student Feedback Generator</h1>
+            <p class="subtitle">Create personalized praise notes for your students</p>
+        </header>
+
+        <div class="card">
+            <h2>📝 Student Information</h2>
+            <div class="form-group">
+                <label for="studentName">Student's Name</label>
+                <input type="text" id="studentName" placeholder="Enter student's name">
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>⭐ Select Qualities</h2>
+            <p style="margin-bottom: 1rem; color: #666;">Choose the qualities that describe this student:</p>
+
+            <div class="qualities-grid">
+                <label class="quality-option">
+                    <input type="checkbox" value="shows great creativity">
+                    <span>Creative</span>
+                </label>
+                <label class="quality-option">
+                    <input type="checkbox" value="works hard every day">
+                    <span>Hardworking</span>
+                </label>
+                <label class="quality-option">
+                    <input type="checkbox" value="is always kind to others">
+                    <span>Kind</span>
+                </label>
+                <label class="quality-option">
+                    <input type="checkbox" value="shows great leadership">
+                    <span>Leader</span>
+                </label>
+                <label class="quality-option">
+                    <input type="checkbox" value="helps classmates succeed">
+                    <span>Helpful</span>
+                </label>
+                <label class="quality-option">
+                    <input type="checkbox" value="participates actively in class">
+                    <span>Participates</span>
+                </label>
+                <label class="quality-option">
+                    <input type="checkbox" value="shows excellent problem-solving skills">
+                    <span>Problem Solver</span>
+                </label>
+                <label class="quality-option">
+                    <input type="checkbox" value="is a great team player">
+                    <span>Team Player</span>
+                </label>
+                <label class="quality-option">
+                    <input type="checkbox" value="shows curiosity and asks great questions">
+                    <span>Curious</span>
+                </label>
+                <label class="quality-option">
+                    <input type="checkbox" value="demonstrates perseverance">
+                    <span>Perseverant</span>
+                </label>
+                <label class="quality-option">
+                    <input type="checkbox" value="is respectful and responsible">
+                    <span>Respectful</span>
+                </label>
+                <label class="quality-option">
+                    <input type="checkbox" value="shows great improvement">
+                    <span>Improving</span>
+                </label>
+            </div>
+
+            <div class="custom-quality">
+                <label for="customQuality">Add a custom quality (optional)</label>
+                <input type="text" id="customQuality" placeholder="e.g., always brings positive energy">
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="generateFeedback()">
+                    ✨ Generate Feedback
+                </button>
+                <button class="btn btn-outline" onclick="clearForm()">
+                    Clear Form
+                </button>
+            </div>
+        </div>
+
+        <div class="card output-area" id="outputArea">
+            <h2>💌 Your Feedback Note</h2>
+            <div class="feedback-note" id="feedbackNote"></div>
+            <div class="button-group">
+                <button class="btn btn-secondary" onclick="copyFeedback()">
+                    📋 Copy to Clipboard
+                </button>
+                <button class="btn btn-primary" onclick="generateFeedback()">
+                    🔄 Generate Another
+                </button>
+                <span class="copy-success" id="copySuccess">Copied!</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Feedback templates with placeholders
+        const templates = [
+            "Dear {name}, I want you to know how proud I am of you! You {qualities}. Keep up the amazing work!",
+            "{name}, you are such a wonderful student! I've noticed that you {qualities}. Your efforts make our classroom a better place!",
+            "To {name}: You should be proud of yourself! You {qualities}, and that makes a real difference. Keep shining!",
+            "A special note for {name}: I see how you {qualities}. Your positive attitude and effort inspire others. Well done!",
+            "{name}, I'm so impressed by you! You {qualities}. Never stop being your amazing self!",
+            "Congratulations, {name}! You {qualities}. I'm grateful to have you in class. Keep being awesome!",
+            "Dear {name}, your hard work doesn't go unnoticed! You {qualities}. I believe in you and can't wait to see what you accomplish next!",
+            "{name}, I wanted to let you know how much I appreciate that you {qualities}. You make our class better every day!"
+        ];
+
+        // Add visual feedback for quality selection
+        document.querySelectorAll('.quality-option').forEach(option => {
+            option.addEventListener('click', function(e) {
+                if (e.target.type !== 'checkbox') {
+                    const checkbox = this.querySelector('input[type="checkbox"]');
+                    checkbox.checked = !checkbox.checked;
+                }
+                this.classList.toggle('selected', this.querySelector('input[type="checkbox"]').checked);
+            });
+        });
+
+        function getSelectedQualities() {
+            const qualities = [];
+            document.querySelectorAll('.quality-option input[type="checkbox"]:checked').forEach(checkbox => {
+                qualities.push(checkbox.value);
+            });
+
+            const customQuality = document.getElementById('customQuality').value.trim();
+            if (customQuality) {
+                qualities.push(customQuality);
+            }
+
+            return qualities;
+        }
+
+        function formatQualities(qualities) {
+            if (qualities.length === 0) return '';
+            if (qualities.length === 1) return qualities[0];
+            if (qualities.length === 2) return `${qualities[0]} and ${qualities[1]}`;
+
+            const last = qualities.pop();
+            return `${qualities.join(', ')}, and ${last}`;
+        }
+
+        function generateFeedback() {
+            const name = document.getElementById('studentName').value.trim();
+            const qualities = getSelectedQualities();
+
+            if (!name) {
+                alert('Please enter the student\'s name.');
+                document.getElementById('studentName').focus();
+                return;
+            }
+
+            if (qualities.length === 0) {
+                alert('Please select at least one quality or add a custom one.');
+                return;
+            }
+
+            // Pick a random template
+            const template = templates[Math.floor(Math.random() * templates.length)];
+
+            // Format qualities into a readable string
+            const formattedQualities = formatQualities([...qualities]);
+
+            // Generate the feedback
+            const feedback = template
+                .replace('{name}', name)
+                .replace('{qualities}', formattedQualities);
+
+            // Display the result
+            const outputArea = document.getElementById('outputArea');
+            const feedbackNote = document.getElementById('feedbackNote');
+
+            feedbackNote.innerHTML = feedback.replace(name, `<span class="student-name">${name}</span>`);
+            outputArea.classList.add('visible');
+
+            // Scroll to result
+            outputArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            // Hide copy success message
+            document.getElementById('copySuccess').classList.remove('show');
+        }
+
+        function copyFeedback() {
+            const feedbackNote = document.getElementById('feedbackNote');
+            const text = feedbackNote.innerText;
+
+            navigator.clipboard.writeText(text).then(() => {
+                const copySuccess = document.getElementById('copySuccess');
+                copySuccess.classList.add('show');
+                setTimeout(() => copySuccess.classList.remove('show'), 2000);
+            }).catch(err => {
+                // Fallback for older browsers
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+
+                const copySuccess = document.getElementById('copySuccess');
+                copySuccess.classList.add('show');
+                setTimeout(() => copySuccess.classList.remove('show'), 2000);
+            });
+        }
+
+        function clearForm() {
+            document.getElementById('studentName').value = '';
+            document.getElementById('customQuality').value = '';
+            document.querySelectorAll('.quality-option input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            document.querySelectorAll('.quality-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            document.getElementById('outputArea').classList.remove('visible');
+            document.getElementById('studentName').focus();
+        }
+
+        // Focus on name input on load
+        window.onload = () => document.getElementById('studentName').focus();
+    </script>
+</body>
+</html>
