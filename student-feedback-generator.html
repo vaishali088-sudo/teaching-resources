@@ -371,23 +371,39 @@
         </div>
 
         <div class="card output-area" id="outputArea">
-            <h2>💌 Your Feedback Note</h2>
+            <h2>💌 Note for Student</h2>
             <div class="feedback-note" id="feedbackNote"></div>
             <div class="button-group">
-                <button class="btn btn-secondary" onclick="copyFeedback()">
+                <button class="btn btn-secondary" onclick="copyFeedback('student')">
                     📋 Copy to Clipboard
                 </button>
-                <button class="btn btn-primary" onclick="generateFeedback()">
-                    🔄 Generate Another
+                <span class="copy-success" id="copySuccessStudent">Copied!</span>
+            </div>
+        </div>
+
+        <div class="card output-area" id="parentOutputArea">
+            <h2>👨‍👩‍👧 Note for Parent/Guardian</h2>
+            <div class="feedback-note" id="parentFeedbackNote"></div>
+            <div class="button-group">
+                <button class="btn btn-secondary" onclick="copyFeedback('parent')">
+                    📋 Copy to Clipboard
                 </button>
-                <span class="copy-success" id="copySuccess">Copied!</span>
+                <span class="copy-success" id="copySuccessParent">Copied!</span>
+            </div>
+        </div>
+
+        <div class="card output-area" id="regenerateArea">
+            <div class="button-group" style="justify-content: center;">
+                <button class="btn btn-primary" onclick="generateFeedback()">
+                    🔄 Generate New Notes
+                </button>
             </div>
         </div>
     </div>
 
     <script>
-        // Feedback templates with placeholders
-        const templates = [
+        // Student feedback templates
+        const studentTemplates = [
             "Dear {name}, I want you to know how proud I am of you! You {qualities}. Keep up the amazing work!",
             "{name}, you are such a wonderful student! I've noticed that you {qualities}. Your efforts make our classroom a better place!",
             "To {name}: You should be proud of yourself! You {qualities}, and that makes a real difference. Keep shining!",
@@ -396,6 +412,18 @@
             "Congratulations, {name}! You {qualities}. I'm grateful to have you in class. Keep being awesome!",
             "Dear {name}, your hard work doesn't go unnoticed! You {qualities}. I believe in you and can't wait to see what you accomplish next!",
             "{name}, I wanted to let you know how much I appreciate that you {qualities}. You make our class better every day!"
+        ];
+
+        // Parent/Guardian feedback templates
+        const parentTemplates = [
+            "Dear Parent/Guardian, I wanted to share some wonderful news about {name}! In class, {name} {qualities}. You should be very proud of the amazing young person you are raising!",
+            "Hello! I'm writing to let you know what a pleasure it is to have {name} in my class. {name} {qualities}. Thank you for supporting such a wonderful student!",
+            "Dear Family of {name}, I wanted to take a moment to celebrate {name}'s achievements! {name} {qualities}. It's clear that your support at home is making a difference!",
+            "Greetings! I have some great news to share about {name}. In our classroom, {name} {qualities}. You have much to be proud of!",
+            "Dear Parent/Guardian, {name} has been doing exceptional work! I've observed that {name} {qualities}. Thank you for nurturing such a remarkable student!",
+            "Hello! Just a quick note to let you know how well {name} is doing. {name} {qualities}. Keep encouraging {name} - it's working!",
+            "Dear Family, I wanted to reach out with positive news about {name}. Your child {qualities}. It's wonderful to see {name} thriving in class!",
+            "Dear Parent/Guardian, I'm happy to report that {name} is a joy to have in class! {name} {qualities}. Thank you for all you do to support {name}'s education!"
         ];
 
         // Add visual feedback for quality selection
@@ -447,37 +475,55 @@
                 return;
             }
 
-            // Pick a random template
-            const template = templates[Math.floor(Math.random() * templates.length)];
-
             // Format qualities into a readable string
             const formattedQualities = formatQualities([...qualities]);
 
-            // Generate the feedback
-            const feedback = template
+            // Pick random templates
+            const studentTemplate = studentTemplates[Math.floor(Math.random() * studentTemplates.length)];
+            const parentTemplate = parentTemplates[Math.floor(Math.random() * parentTemplates.length)];
+
+            // Generate the student feedback
+            const studentFeedback = studentTemplate
                 .replace('{name}', name)
                 .replace('{qualities}', formattedQualities);
 
-            // Display the result
+            // Generate the parent feedback (replace all instances of {name})
+            const parentFeedback = parentTemplate
+                .replace(/{name}/g, name)
+                .replace('{qualities}', formattedQualities);
+
+            // Display the student note
             const outputArea = document.getElementById('outputArea');
             const feedbackNote = document.getElementById('feedbackNote');
-
-            feedbackNote.innerHTML = feedback.replace(name, `<span class="student-name">${name}</span>`);
+            feedbackNote.innerHTML = studentFeedback.replace(name, `<span class="student-name">${name}</span>`);
             outputArea.classList.add('visible');
 
-            // Scroll to result
-            outputArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Display the parent note
+            const parentOutputArea = document.getElementById('parentOutputArea');
+            const parentFeedbackNote = document.getElementById('parentFeedbackNote');
+            parentFeedbackNote.innerHTML = parentFeedback.replace(new RegExp(name, 'g'), `<span class="student-name">${name}</span>`);
+            parentOutputArea.classList.add('visible');
 
-            // Hide copy success message
-            document.getElementById('copySuccess').classList.remove('show');
+            // Show regenerate button
+            document.getElementById('regenerateArea').classList.add('visible');
+
+            // Scroll to results
+            outputArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            // Hide copy success messages
+            document.getElementById('copySuccessStudent').classList.remove('show');
+            document.getElementById('copySuccessParent').classList.remove('show');
         }
 
-        function copyFeedback() {
-            const feedbackNote = document.getElementById('feedbackNote');
+        function copyFeedback(type) {
+            const noteId = type === 'parent' ? 'parentFeedbackNote' : 'feedbackNote';
+            const successId = type === 'parent' ? 'copySuccessParent' : 'copySuccessStudent';
+
+            const feedbackNote = document.getElementById(noteId);
             const text = feedbackNote.innerText;
 
             navigator.clipboard.writeText(text).then(() => {
-                const copySuccess = document.getElementById('copySuccess');
+                const copySuccess = document.getElementById(successId);
                 copySuccess.classList.add('show');
                 setTimeout(() => copySuccess.classList.remove('show'), 2000);
             }).catch(err => {
@@ -489,7 +535,7 @@
                 document.execCommand('copy');
                 document.body.removeChild(textarea);
 
-                const copySuccess = document.getElementById('copySuccess');
+                const copySuccess = document.getElementById(successId);
                 copySuccess.classList.add('show');
                 setTimeout(() => copySuccess.classList.remove('show'), 2000);
             });
@@ -505,6 +551,8 @@
                 option.classList.remove('selected');
             });
             document.getElementById('outputArea').classList.remove('visible');
+            document.getElementById('parentOutputArea').classList.remove('visible');
+            document.getElementById('regenerateArea').classList.remove('visible');
             document.getElementById('studentName').focus();
         }
 
