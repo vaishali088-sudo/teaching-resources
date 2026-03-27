@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spud Runner – Idiom Platformer</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a0a00;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Segoe UI', sans-serif;
+    color: #fff;
+  }
+  h1 {
+    font-size: 2rem;
+    color: #f5c842;
+    text-shadow: 2px 2px #7a3b00;
+    margin-bottom: 8px;
+    letter-spacing: 2px;
+  }
+  #hud {
+    display: flex;
+    gap: 32px;
+    margin-bottom: 6px;
+    font-size: 1rem;
+    color: #f5c842;
+    font-weight: bold;
+  }
+  canvas {
+    border: 3px solid #7a3b00;
+    border-radius: 4px;
+    display: block;
+  }
+  /* Overlay panels */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+  .panel {
+    background: #3b1a00;
+    border: 3px solid #f5c842;
+    border-radius: 12px;
+    padding: 28px 36px;
+    max-width: 540px;
+    width: 92%;
+    text-align: center;
+  }
+  .panel h2 { color: #f5c842; font-size: 1.5rem; margin-bottom: 10px; }
+  .panel p  { color: #fde8b0; margin-bottom: 18px; font-size: 1rem; line-height: 1.5; }
+  .panel .idiom-quote {
+    font-size: 1.3rem;
+    color: #fff;
+    background: #5c2a00;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    font-style: italic;
+  }
+  .choices { display: flex; flex-direction: column; gap: 10px; }
+  .choice-btn {
+    background: #5c2a00;
+    border: 2px solid #f5c842;
+    color: #fde8b0;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    text-align: left;
+    transition: background 0.15s;
+  }
+  .choice-btn:hover { background: #7a3b00; }
+  .choice-btn.correct { background: #1a6e1a; border-color: #4cff4c; color: #fff; }
+  .choice-btn.wrong   { background: #6e1a1a; border-color: #ff4c4c; color: #fff; }
+  .btn {
+    background: #f5c842;
+    color: #3b1a00;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 12px;
+  }
+  .btn:hover { background: #ffd966; }
+  /* Leaderboard */
+  #lb-list { list-style: none; margin: 12px 0; text-align: left; }
+  #lb-list li {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 10px;
+    border-bottom: 1px solid #5c2a00;
+    color: #fde8b0;
+    font-size: 0.95rem;
+  }
+  #lb-list li:nth-child(1) { color: #ffd700; font-weight: bold; }
+  #lb-list li:nth-child(2) { color: #c0c0c0; }
+  #lb-list li:nth-child(3) { color: #cd7f32; }
+  #name-input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 2px solid #f5c842;
+    background: #5c2a00;
+    color: #fff;
+    font-size: 1.1rem;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  .feedback-msg {
+    font-size: 1rem;
+    margin: 8px 0 4px;
+    min-height: 24px;
+    font-weight: bold;
+  }
+  .feedback-msg.correct { color: #4cff4c; }
+  .feedback-msg.wrong   { color: #ff6b6b; }
+</style>
+</head>
+<body>
+<h1>🥔 Spud Runner</h1>
+<div id="hud">
+  <span>Score: <span id="score-display">0</span></span>
+  <span>Lives: <span id="lives-display">❤️❤️❤️</span></span>
+  <span>Level: <span id="level-display">1</span></span>
+</div>
+<canvas id="gameCanvas" width="800" height="350"></canvas>
+
+<!-- Start Screen -->
+<div class="overlay" id="start-screen">
+  <div class="panel">
+    <h2>🥔 Spud Runner</h2>
+    <p>Help the brave potato dodge kitchen dangers!<br>
+       Answer idiom questions to earn bonus points and extra speed.<br>
+       Press <strong>SPACE</strong> or <strong>↑</strong> to jump (double-jump supported!)</p>
+    <p style="font-size:0.85rem;color:#f5c842;">Obstacles: whisks · slugs · pitchforks · hot oil</p>
+    <input id="player-name" class="name-input" type="text" placeholder="Enter your name…"
+      style="width:100%;padding:10px;border-radius:8px;border:2px solid #f5c842;
+             background:#5c2a00;color:#fff;font-size:1.1rem;text-align:center;margin-bottom:10px;">
+    <br>
+    <button class="btn" id="start-btn">START GAME</button>
+  </div>
+</div>
+
+<!-- Question Panel -->
+<div class="overlay" id="question-screen" style="display:none;">
+  <div class="panel">
+    <h2>🧠 What does this idiom mean?</h2>
+    <div class="idiom-quote" id="q-idiom"></div>
+    <div class="choices" id="q-choices"></div>
+    <div class="feedback-msg" id="q-feedback"></div>
+  </div>
+</div>
+
+<!-- Game Over Screen -->
+<div class="overlay" id="gameover-screen" style="display:none;">
+  <div class="panel">
+    <h2>Game Over!</h2>
+    <p>Final Score: <strong id="final-score" style="color:#f5c842;font-size:1.4rem;"></strong></p>
+    <p>Idioms correct: <span id="final-correct"></span> / <span id="final-total"></span></p>
+    <input id="name-input" class="name-input" type="text" placeholder="Enter your name for leaderboard…">
+    <button class="btn" id="save-score-btn">Save Score</button>
+    <ul id="lb-list"></ul>
+    <button class="btn" id="restart-btn">Play Again</button>
+  </div>
+</div>
+
+<script>
+// ─── IDIOM DATA ────────────────────────────────────────────────────────────
+const IDIOMS = [
+  { q:"Bite the bullet", a:"Endure a painful situation bravely",
+    wrong:["Eat something metallic","Shoot quickly","Tell a lie"] },
+  { q:"Spill the beans", a:"Reveal a secret accidentally",
+    wrong:["Make a mess","Cook dinner","Ignore a problem"] },
+  { q:"Hit the nail on the head", a:"Be exactly correct",
+    wrong:["Hurt your hand","Build something fast","Lose your temper"] },
+  { q:"Break a leg", a:"Good luck",
+    wrong:["Get injured","Run away","Dance on stage"] },
+  { q:"Under the weather", a:"Feeling ill or unwell",
+    wrong:["Standing in the rain","Very happy","Working outside"] },
+  { q:"Piece of cake", a:"Something very easy",
+    wrong:["A slice of dessert","Something expensive","A difficult task"] },
+  { q:"Once in a blue moon", a:"Very rarely",
+    wrong:["Every single night","On a cloudy day","During summer"] },
+  { q:"Let the cat out of the bag", a:"Reveal a secret",
+    wrong:["Free a trapped animal","Lose your belongings","Start an argument"] },
+  { q:"Kick the bucket", a:"To die",
+    wrong:["Kick something hard","Lose a sports game","Drop everything"] },
+  { q:"Hit the sack", a:"Go to bed",
+    wrong:["Win a fight","Throw a bag","Leave school early"] },
+  { q:"Cost an arm and a leg", a:"Be very expensive",
+    wrong:["Cause pain","Be free","Need medical help"] },
+  { q:"Beat around the bush", a:"Avoid the main topic",
+    wrong:["Trim the garden","Win a fight outdoors","Work very hard"] },
+  { q:"The ball is in your court", a:"It's your turn to make a decision",
+    wrong:["Play a sport","Wait for others","Go to court"] },
+  { q:"Bite off more than you can chew", a:"Take on more than you can handle",
+    wrong:["Eat too fast","Chew gum","Be greedy with food"] },
+  { q:"Burn bridges", a:"Permanently damage a relationship",
+    wrong:["Start a fire","Cross a river","Forget someone's name"] },
+  { q:"Actions speak louder than words", a:"What you do matters more than what you say",
+    wrong:["Talking is important","Shout to be heard","Write things down"] },
+  { q:"Don't judge a book by its cover", a:"Don't judge by appearances alone",
+    wrong:["Read more books","Cover your books","Buy expensive things"] },
+  { q:"Every cloud has a silver lining", a:"Every bad situation has a positive side",
+    wrong:["Weather changes quickly","Silver is valuable","Clouds bring rain"] },
+  { q:"Jump on the bandwagon", a:"Follow a popular trend",
+    wrong:["Join a band","Leap over something","Drive a wagon"] },
+  { q:"The whole nine yards", a:"Everything; the full amount",
+    wrong:["Play football","Measure fabric","Do half the work"] },
+];
+
+// ─── CANVAS SETUP ─────────────────────────────────────────────────────────
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+// ─── GAME STATE ────────────────────────────────────────────────────────────
+let state = 'start'; // start | playing | question | gameover
+let score = 0, lives = 3, level = 1;
+let questionCount = 0, correctCount = 0;
+let playerName = '';
+let animId;
+let lastObstacle = 0;
+let nextQuestion = 0; // score threshold for next question
+let frameCount = 0;
+let bgOffset = 0;
+let gameSpeed = 3;
+let questionPending = false;
+
+// ─── PLAYER ────────────────────────────────────────────────────────────────
+const GROUND = H - 60;
+const player = {
+  x: 120, y: GROUND,
+  w: 48, h: 52,
+  vy: 0, jumps: 0,
+  maxJumps: 2,
+  invincible: 0,
+};
+const GRAVITY = 0.55;
+const JUMP_FORCE = -13;
+
+// ─── OBSTACLES ─────────────────────────────────────────────────────────────
+let obstacles = [];
+const OBS_TYPES = ['whisk','slug','pitchfork','oil'];
+
+// ─── PLATFORMS ─────────────────────────────────────────────────────────────
+let platforms = [
+  { x: 300, y: GROUND - 90,  w: 100, h: 14 },
+  { x: 520, y: GROUND - 130, w: 100, h: 14 },
+  { x: 680, y: GROUND - 80,  w: 100, h: 14 },
+];
+
+// ─── INPUT ─────────────────────────────────────────────────────────────────
+const keys = {};
+document.addEventListener('keydown', e => {
+  if (!keys[e.code] && state === 'playing') {
+    if (e.code === 'Space' || e.code === 'ArrowUp') {
+      e.preventDefault();
+      doJump();
+    }
+  }
+  keys[e.code] = true;
+});
+document.addEventListener('keyup', e => keys[e.code] = false);
+canvas.addEventListener('click', () => { if (state === 'playing') doJump(); });
+
+function doJump() {
+  if (player.jumps < player.maxJumps) {
+    player.vy = JUMP_FORCE;
+    player.jumps++;
+  }
+}
+
+// ─── START BUTTON ──────────────────────────────────────────────────────────
+document.getElementById('start-btn').addEventListener('click', () => {
+  playerName = document.getElementById('player-name').value.trim() || 'Player';
+  document.getElementById('start-screen').style.display = 'none';
+  startGame();
+});
+document.getElementById('restart-btn').addEventListener('click', () => {
+  document.getElementById('gameover-screen').style.display = 'none';
+  startGame();
+});
+document.getElementById('save-score-btn').addEventListener('click', saveScore);
+
+// ─── GAME INIT ─────────────────────────────────────────────────────────────
+function startGame() {
+  score = 0; lives = 3; level = 1;
+  questionCount = 0; correctCount = 0;
+  obstacles = []; frameCount = 0; bgOffset = 0; gameSpeed = 3;
+  player.x = 120; player.y = GROUND; player.vy = 0; player.jumps = 0;
+  player.invincible = 0;
+  lastObstacle = 200;
+  nextQuestion = 200;
+  questionPending = false;
+  platforms = [
+    { x: 300, y: GROUND - 90,  w: 100, h: 14 },
+    { x: 520, y: GROUND - 130, w: 100, h: 14 },
+    { x: 680, y: GROUND - 80,  w: 100, h: 14 },
+  ];
+  updateHUD();
+  state = 'playing';
+  if (animId) cancelAnimationFrame(animId);
+  loop();
+}
+
+// ─── MAIN LOOP ─────────────────────────────────────────────────────────────
+function loop() {
+  if (state !== 'playing') return;
+  update();
+  render();
+  animId = requestAnimationFrame(loop);
+}
+
+// ─── UPDATE ────────────────────────────────────────────────────────────────
+function update() {
+  frameCount++;
+  bgOffset = (bgOffset + gameSpeed * 0.4) % W;
+
+  // Level up every 500 pts
+  level = Math.floor(score / 500) + 1;
+  gameSpeed = 3 + (level - 1) * 0.5;
+
+  // Player physics
+  player.vy += GRAVITY;
+  player.y += player.vy;
+
+  // Ground collision
+  if (player.y >= GROUND) {
+    player.y = GROUND;
+    player.vy = 0;
+    player.jumps = 0;
+  }
+
+  // Platform collision
+  for (const p of platforms) {
+    if (
+      player.vy >= 0 &&
+      player.x + player.w - 8 > p.x &&
+      player.x + 8 < p.x + p.w &&
+      player.y + player.h >= p.y &&
+      player.y + player.h <= p.y + p.h + 10
+    ) {
+      player.y = p.y - player.h;
+      player.vy = 0;
+      player.jumps = 0;
+    }
+  }
+
+  // Move platforms
+  for (const p of platforms) p.x -= gameSpeed;
+  platforms = platforms.filter(p => p.x + p.w > -10);
+  // Spawn new platforms
+  if (platforms.length === 0 || platforms[platforms.length - 1].x < W - 200) {
+    const lastX = platforms.length ? platforms[platforms.length - 1].x : W;
+    if (Math.random() < 0.4) {
+      platforms.push({
+        x: Math.max(lastX + 180, W),
+        y: GROUND - 80 - Math.random() * 80,
+        w: 90 + Math.random() * 60,
+        h: 14
+      });
+    }
+  }
+
+  // Score ticks
+  score += 0.05 * gameSpeed;
+
+  // Spawn obstacles
+  lastObstacle--;
+  const gap = Math.max(80, 160 - level * 10);
+  if (lastObstacle <= 0) {
+    spawnObstacle();
+    lastObstacle = gap + Math.random() * 60;
+  }
+
+  // Move & check obstacles
+  if (player.invincible > 0) player.invincible--;
+  for (let i = obstacles.length - 1; i >= 0; i--) {
+    const o = obstacles[i];
+    o.x -= gameSpeed;
+    o.frame = (o.frame + 0.15) % 1;
+    if (o.x + o.w < 0) { obstacles.splice(i, 1); continue; }
+
+    // Collision
+    if (player.invincible === 0 && rectsOverlap(
+      player.x + 8, player.y + 8, player.w - 16, player.h - 16,
+      o.x, o.y, o.w, o.h
+    )) {
+      obstacles.splice(i, 1);
+      loseLife();
+    }
+  }
+
+  // Trigger idiom question
+  if (!questionPending && score >= nextQuestion) {
+    questionPending = true;
+    showQuestion();
+    nextQuestion += 300 + level * 50;
+  }
+
+  updateHUD();
+}
+
+function rectsOverlap(ax,ay,aw,ah, bx,by,bw,bh) {
+  return ax < bx+bw && ax+aw > bx && ay < by+bh && ay+ah > by;
+}
+
+function spawnObstacle() {
+  const type = OBS_TYPES[Math.floor(Math.random() * OBS_TYPES.length)];
+  let w, h, y;
+  if (type === 'slug')      { w=44; h=24; y=GROUND+28; }
+  else if (type === 'whisk'){ w=28; h=60; y=GROUND-8; }
+  else if (type === 'pitchfork') { w=30; h=70; y=GROUND-18; }
+  else { w=36; h=36; y=GROUND+16; } // oil
+  obstacles.push({ type, x: W+20, y, w, h, frame:0 });
+}
+
+function loseLife() {
+  lives--;
+  player.invincible = 90;
+  updateHUD();
+  if (lives <= 0) endGame();
+}
+
+function updateHUD() {
+  document.getElementById('score-display').textContent = Math.floor(score);
+  document.getElementById('lives-display').textContent = '❤️'.repeat(Math.max(0,lives));
+  document.getElementById('level-display').textContent = level;
+}
+
+// ─── RENDER ────────────────────────────────────────────────────────────────
+function render() {
+  // Sky gradient
+  const sky = ctx.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, '#1a0a00');
+  sky.addColorStop(1, '#3b1a00');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, W, H);
+
+  drawBackground();
+  drawPlatforms();
+  drawObstacles();
+  drawPlayer();
+  drawGround();
+}
+
+function drawBackground() {
+  // Scrolling dirt pattern
+  ctx.fillStyle = '#2a0e00';
+  for (let i = 0; i < 6; i++) {
+    const x = ((i * 140 - bgOffset * 0.5) % (W + 140)) - 140;
+    ctx.beginPath();
+    ctx.arc(x + 70, 80 + Math.sin(i) * 30, 60, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Stars
+  ctx.fillStyle = 'rgba(255,220,100,0.5)';
+  for (let i = 0; i < 20; i++) {
+    const sx = ((i * 43 + 7 - bgOffset * 0.1) % W + W) % W;
+    const sy = 20 + (i * 17) % 120;
+    ctx.fillRect(sx, sy, 2, 2);
+  }
+}
+
+function drawGround() {
+  // Dirt ground
+  ctx.fillStyle = '#5c2a00';
+  ctx.fillRect(0, GROUND + player.h, W, H - GROUND - player.h);
+  // Grass line
+  ctx.fillStyle = '#3a7a00';
+  ctx.fillRect(0, GROUND + player.h, W, 8);
+  // Dirt texture lines
+  ctx.strokeStyle = '#7a3b00';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 8; i++) {
+    const x = ((i * 110 - bgOffset) % (W + 110) + W + 110) % (W + 110) - 110;
+    ctx.beginPath();
+    ctx.moveTo(x, GROUND + player.h + 20);
+    ctx.lineTo(x + 60, GROUND + player.h + 20);
+    ctx.stroke();
+  }
+}
+
+function drawPlatforms() {
+  for (const p of platforms) {
+    ctx.fillStyle = '#5c2a00';
+    ctx.fillRect(p.x, p.y, p.w, p.h);
+    ctx.fillStyle = '#3a7a00';
+    ctx.fillRect(p.x, p.y, p.w, 5);
+    ctx.fillStyle = '#7a3b00';
+    ctx.fillRect(p.x, p.y + p.h - 3, p.w, 3);
+  }
+}
+
+function drawPlayer() {
+  const px = player.x, py = player.y;
+  const blink = player.invincible > 0 && Math.floor(player.invincible / 6) % 2 === 0;
+  if (blink) return;
+
+  ctx.save();
+  // Body (potato shape)
+  ctx.fillStyle = '#c9964c';
+  ctx.beginPath();
+  ctx.ellipse(px + 24, py + 28, 20, 24, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Skin texture spots
+  ctx.fillStyle = '#a87840';
+  ctx.beginPath(); ctx.ellipse(px+16, py+22, 4, 3, -0.3, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(px+30, py+34, 3, 3, 0.2, 0, Math.PI*2); ctx.fill();
+  // Eyes
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.ellipse(px+18, py+20, 4, 5, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(px+30, py+20, 4, 5, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#222';
+  ctx.beginPath(); ctx.ellipse(px+19, py+21, 2.5, 3, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(px+31, py+21, 2.5, 3, 0, 0, Math.PI*2); ctx.fill();
+  // Mouth smile
+  ctx.strokeStyle = '#5c2a00'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(px+24, py+30, 6, 0.2, Math.PI - 0.2);
+  ctx.stroke();
+  // Legs (running animation)
+  const legSwing = Math.sin(frameCount * 0.25) * 10;
+  ctx.strokeStyle = '#a87840'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(px+18, py+48); ctx.lineTo(px+14+legSwing, py+60); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(px+30, py+48); ctx.lineTo(px+34-legSwing, py+60); ctx.stroke();
+  // Arms
+  ctx.strokeStyle = '#c9964c'; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(px+8, py+30); ctx.lineTo(px+4, py+38+legSwing*0.5); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(px+40, py+30); ctx.lineTo(px+44, py+38-legSwing*0.5); ctx.stroke();
+  ctx.restore();
+}
+
+function drawObstacles() {
+  for (const o of obstacles) {
+    ctx.save();
+    if (o.type === 'whisk') drawWhisk(o);
+    else if (o.type === 'slug') drawSlug(o);
+    else if (o.type === 'pitchfork') drawPitchfork(o);
+    else drawOil(o);
+    ctx.restore();
+  }
+}
+
+function drawWhisk(o) {
+  const cx = o.x + o.w/2, cy = o.y;
+  // Handle
+  ctx.strokeStyle = '#c0a060'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx, cy + 40); ctx.stroke();
+  // Whisk loops
+  ctx.strokeStyle = '#e0e0e0'; ctx.lineWidth = 2;
+  for (let i = 0; i < 4; i++) {
+    const lx = cx + (i % 2 === 0 ? -8 : 8);
+    ctx.beginPath();
+    ctx.ellipse(lx, cy + 50 + i * 5, 6, 10, 0.3, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  // Shadow dot
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath(); ctx.ellipse(cx, o.y + o.h + 6, 10, 4, 0, 0, Math.PI*2); ctx.fill();
+}
+
+function drawSlug(o) {
+  const cx = o.x, cy = o.y;
+  // Body
+  ctx.fillStyle = '#6a8a30';
+  ctx.beginPath();
+  ctx.ellipse(cx + 22, cy + 10, 22, 12, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Head bump
+  ctx.fillStyle = '#5a7a28';
+  ctx.beginPath();
+  ctx.ellipse(cx + 38, cy + 8, 10, 9, 0.3, 0, Math.PI * 2);
+  ctx.fill();
+  // Antennae
+  ctx.strokeStyle = '#5a7a28'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(cx+35, cy+2); ctx.lineTo(cx+32, cy-8); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx+40, cy+2); ctx.lineTo(cx+38, cy-9); ctx.stroke();
+  ctx.fillStyle = '#222';
+  ctx.beginPath(); ctx.arc(cx+32, cy-8, 2, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx+38, cy-9, 2, 0, Math.PI*2); ctx.fill();
+  // Eye
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(cx+36, cy+8, 3, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#000';
+  ctx.beginPath(); ctx.arc(cx+37, cy+8, 1.5, 0, Math.PI*2); ctx.fill();
+  // Slime trail
+  ctx.strokeStyle = 'rgba(120,200,60,0.4)'; ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy+18);
+  for (let i=1; i<=5; i++) ctx.lineTo(cx - i*8, cy+18 + Math.sin(i)*3);
+  ctx.stroke();
+}
+
+function drawPitchfork(o) {
+  const cx = o.x + o.w/2, cy = o.y;
+  // Handle
+  ctx.strokeStyle = '#8B5E3C'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(cx, cy + o.h); ctx.lineTo(cx, cy + 20); ctx.stroke();
+  // Tines
+  ctx.strokeStyle = '#aaaaaa'; ctx.lineWidth = 3;
+  for (let t = -1; t <= 1; t++) {
+    ctx.beginPath();
+    ctx.moveTo(cx + t * 10, cy + 20);
+    ctx.lineTo(cx + t * 10, cy);
+    ctx.stroke();
+    // Barb
+    ctx.beginPath();
+    ctx.moveTo(cx + t * 10, cy + 8);
+    ctx.lineTo(cx + t * 10 + (t === 0 ? 5 : t * 5), cy + 14);
+    ctx.stroke();
+  }
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath(); ctx.ellipse(cx, o.y + o.h + 6, 8, 3, 0, 0, Math.PI*2); ctx.fill();
+}
+
+function drawOil(o) {
+  const cx = o.x + o.w/2, cy = o.y;
+  const bob = Math.sin(o.frame * Math.PI * 2) * 3;
+  // Splatter base
+  ctx.fillStyle = 'rgba(255,180,0,0.25)';
+  ctx.beginPath(); ctx.ellipse(cx, cy + 30, 20, 6, 0, 0, Math.PI*2); ctx.fill();
+  // Drops
+  for (let d = 0; d < 3; d++) {
+    const dx = cx + (d-1)*10;
+    const dropY = cy + bob + d*4;
+    ctx.fillStyle = `rgba(255,${140+d*20},0,0.9)`;
+    ctx.beginPath();
+    ctx.moveTo(dx, dropY);
+    ctx.bezierCurveTo(dx+8, dropY+6, dx+8, dropY+14, dx, dropY+18);
+    ctx.bezierCurveTo(dx-8, dropY+14, dx-8, dropY+6, dx, dropY);
+    ctx.fill();
+  }
+  // Bubble
+  ctx.strokeStyle = 'rgba(255,200,0,0.8)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(cx+6, cy+bob+2, 4, 0, Math.PI*2); ctx.stroke();
+}
+
+// ─── IDIOM QUESTIONS ───────────────────────────────────────────────────────
+let currentIdiom = null;
+let answerLocked = false;
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length-1; i>0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function showQuestion() {
+  state = 'question';
+  cancelAnimationFrame(animId);
+
+  currentIdiom = IDIOMS[questionCount % IDIOMS.length];
+  // After first pass, randomize
+  if (questionCount >= IDIOMS.length) {
+    currentIdiom = IDIOMS[Math.floor(Math.random() * IDIOMS.length)];
+  }
+  questionCount++;
+  answerLocked = false;
+
+  document.getElementById('q-idiom').textContent = `"${currentIdiom.q}"`;
+  document.getElementById('q-feedback').textContent = '';
+  document.getElementById('q-feedback').className = 'feedback-msg';
+
+  const choices = shuffle([currentIdiom.a, ...currentIdiom.wrong.slice(0,3)]);
+  const container = document.getElementById('q-choices');
+  container.innerHTML = '';
+  choices.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.textContent = c;
+    btn.addEventListener('click', () => handleAnswer(btn, c));
+    container.appendChild(btn);
+  });
+
+  document.getElementById('question-screen').style.display = 'flex';
+}
+
+function handleAnswer(btn, choice) {
+  if (answerLocked) return;
+  answerLocked = true;
+
+  const correct = choice === currentIdiom.a;
+  const fb = document.getElementById('q-feedback');
+
+  if (correct) {
+    btn.classList.add('correct');
+    score += 100;
+    correctCount++;
+    fb.textContent = '✓ Correct! +100 points!';
+    fb.className = 'feedback-msg correct';
+  } else {
+    btn.classList.add('wrong');
+    fb.textContent = `✗ The answer was: "${currentIdiom.a}"`;
+    fb.className = 'feedback-msg wrong';
+    // Highlight correct
+    document.querySelectorAll('.choice-btn').forEach(b => {
+      if (b.textContent === currentIdiom.a) b.classList.add('correct');
+    });
+  }
+
+  setTimeout(() => {
+    document.getElementById('question-screen').style.display = 'none';
+    questionPending = false;
+    state = 'playing';
+    loop();
+  }, 1800);
+}
+
+// ─── GAME OVER ─────────────────────────────────────────────────────────────
+function endGame() {
+  state = 'gameover';
+  cancelAnimationFrame(animId);
+  document.getElementById('final-score').textContent = Math.floor(score);
+  document.getElementById('final-correct').textContent = correctCount;
+  document.getElementById('final-total').textContent = questionCount;
+  document.getElementById('name-input').value = playerName;
+  renderLeaderboard();
+  document.getElementById('gameover-screen').style.display = 'flex';
+}
+
+function saveScore() {
+  const name = document.getElementById('name-input').value.trim() || playerName || 'Anonymous';
+  const lb = getLeaderboard();
+  lb.push({ name, score: Math.floor(score), correct: correctCount, total: questionCount });
+  lb.sort((a,b) => b.score - a.score);
+  lb.splice(10);
+  localStorage.setItem('spudrunner_lb', JSON.stringify(lb));
+  renderLeaderboard();
+}
+
+function getLeaderboard() {
+  try { return JSON.parse(localStorage.getItem('spudrunner_lb')) || []; }
+  catch { return []; }
+}
+
+function renderLeaderboard() {
+  const lb = getLeaderboard();
+  const ul = document.getElementById('lb-list');
+  if (lb.length === 0) {
+    ul.innerHTML = '<li style="color:#888;justify-content:center;">No scores yet</li>';
+    return;
+  }
+  ul.innerHTML = lb.map((e,i) =>
+    `<li><span>${i+1}. ${e.name}</span><span>${e.score} pts (${e.correct}/${e.total} ✓)</span></li>`
+  ).join('');
+}
+
+// ─── KICK OFF ──────────────────────────────────────────────────────────────
+render(); // draw initial frame
+</script>
+</body>
+</html>
